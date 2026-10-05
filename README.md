@@ -57,30 +57,9 @@ This doesn't break the lab, but it's worth naming rather than glossing over, sin
 
 Azure Policy auto-enrolls every VM in the resource group into periodic patch assessment. The Maintenance Configuration defines the weekly schedule and patch classifications. Three maintenance assignments link that schedule to each individual VM. `validate-lab.ps1` queries compliance state per VM and exports a JSON report. DC01 is the domain controller; WS01 and WS02 simulate production workloads.
 
-```
-Resource Group: rg-aumlab
-┌───────────────────────────────────────────────────────────────────┐
-│                                                                     │
-│   Azure Policy (59efceea)                                          │
-│   Auto-enrolls all VMs → periodic patch assessment                 │
-│         │                                                          │
-│         ▼                                                          │
-│   DC01 ──────┐   WS01 ──────┐   WS02 ──────┐                       │
-│   Domain     │   Member     │   Member     │                       │
-│   Controller │   Server     │   Server     │                       │
-│         │    │        │     │        │     │                       │
-│         └────┴────────┴─────┴────────┘                             │
-│                        │                                            │
-│                        ▼                                            │
-│         Maintenance Configuration (aum-weekly-patches)              │
-│         Weekly window · Critical/Security/UpdateRollup · IfRequired │
-│                        │                                            │
-│         3 Maintenance Assignments (one per VM)                      │
-│                        │                                            │
-│                        ▼                                            │
-│              validate-lab.ps1 → compliance JSON report              │
-└───────────────────────────────────────────────────────────────────┘
-```
+![Azure Update Manager lab architecture: Azure Policy enrolls DC01, WS01, and WS02 for assessment, a weekly Maintenance Configuration patches them through three Maintenance Assignments, and validate-lab.ps1 exports a JSON compliance report](diagrams/aum-lab-architecture.png)
+
+Dashed arrows are assessment, solid arrows are patching. They're drawn separately because they are separate operations: a VM can report compliance data through the policy and still never be patched if its maintenance assignment is missing.
 
 ## Why Each Component Exists
 
