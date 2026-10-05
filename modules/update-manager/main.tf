@@ -38,7 +38,7 @@ resource "azurerm_maintenance_configuration" "weekly" {
   in_guest_user_patch_mode = "User"
 
   window {
-    start_date_time = "2026-09-22 02:00" # Update to a future date before deploying
+    start_date_time = "2026-10-22 02:00" # Update to a future date before deploying
     time_zone       = "Eastern Standard Time"
     duration        = "03:00"
     recur_every     = "Week"
