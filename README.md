@@ -8,7 +8,7 @@ Building a complete patch management pipeline from zero using modular Terraform:
 ![Status](https://img.shields.io/badge/Status-Complete-success)
 
 ## 🎥 Watch Me Live
-[Watch me build this lab live →](PASTE_YOUR_LINK_HERE)
+[Watch me build this lab live →](https://www.loom.com/share/cc28421ccd1943f8bc79d9b2ec693c68)
 
 ## Overview
 
@@ -57,9 +57,30 @@ This doesn't break the lab, but it's worth naming rather than glossing over, sin
 
 Azure Policy auto-enrolls every VM in the resource group into periodic patch assessment. The Maintenance Configuration defines the weekly schedule and patch classifications. Three maintenance assignments link that schedule to each individual VM. `validate-lab.ps1` queries compliance state per VM and exports a JSON report. DC01 is the domain controller; WS01 and WS02 simulate production workloads.
 
-![Azure Update Manager lab architecture: Azure Policy enrolls DC01, WS01, and WS02 for assessment, a weekly Maintenance Configuration patches them through three Maintenance Assignments, and validate-lab.ps1 exports a JSON compliance report](diagrams/aum-lab-architecture.png)
-
-Dashed arrows are assessment, solid arrows are patching. They're drawn separately because they are separate operations: a VM can report compliance data through the policy and still never be patched if its maintenance assignment is missing.
+```
+Resource Group: rg-aumlab
+┌───────────────────────────────────────────────────────────────────┐
+│                                                                     │
+│   Azure Policy (59efceea)                                          │
+│   Auto-enrolls all VMs → periodic patch assessment                 │
+│         │                                                          │
+│         ▼                                                          │
+│   DC01 ──────┐   WS01 ──────┐   WS02 ──────┐                       │
+│   Domain     │   Member     │   Member     │                       │
+│   Controller │   Server     │   Server     │                       │
+│         │    │        │     │        │     │                       │
+│         └────┴────────┴─────┴────────┘                             │
+│                        │                                            │
+│                        ▼                                            │
+│         Maintenance Configuration (aum-weekly-patches)              │
+│         Weekly window · Critical/Security/UpdateRollup · IfRequired │
+│                        │                                            │
+│         3 Maintenance Assignments (one per VM)                      │
+│                        │                                            │
+│                        ▼                                            │
+│              validate-lab.ps1 → compliance JSON report              │
+└───────────────────────────────────────────────────────────────────┘
+```
 
 ## Why Each Component Exists
 
@@ -716,6 +737,3 @@ az group show --name rg-aumlab 2>&1
 
 - **Lab 1** — NTFS File Server
 - **Lab 2** — Azure RBAC Access Control
-- **Lab 3** — Splunk SIEM & Log Analysis
-- **Lab 4** — ServiceNow ITSM
-- **Lab 5** — Nessus Vulnerability Scanning
