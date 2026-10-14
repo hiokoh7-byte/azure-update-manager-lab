@@ -8,7 +8,7 @@ Building a complete patch management pipeline from zero using modular Terraform:
 ![Status](https://img.shields.io/badge/Status-Complete-success)
 
 ## 🎥 Watch Me Live
-[Watch me build this lab live →](https://www.loom.com/share/cc28421ccd1943f8bc79d9b2ec693c68)
+[Watch me Live](https://www.loom.com/share/cc28421ccd1943f8bc79d9b2ec693c68)
 
 ## Overview
 
@@ -57,30 +57,9 @@ This doesn't break the lab, but it's worth naming rather than glossing over, sin
 
 Azure Policy auto-enrolls every VM in the resource group into periodic patch assessment. The Maintenance Configuration defines the weekly schedule and patch classifications. Three maintenance assignments link that schedule to each individual VM. `validate-lab.ps1` queries compliance state per VM and exports a JSON report. DC01 is the domain controller; WS01 and WS02 simulate production workloads.
 
-```
-Resource Group: rg-aumlab
-┌───────────────────────────────────────────────────────────────────┐
-│                                                                     │
-│   Azure Policy (59efceea)                                          │
-│   Auto-enrolls all VMs → periodic patch assessment                 │
-│         │                                                          │
-│         ▼                                                          │
-│   DC01 ──────┐   WS01 ──────┐   WS02 ──────┐                       │
-│   Domain     │   Member     │   Member     │                       │
-│   Controller │   Server     │   Server     │                       │
-│         │    │        │     │        │     │                       │
-│         └────┴────────┴─────┴────────┘                             │
-│                        │                                            │
-│                        ▼                                            │
-│         Maintenance Configuration (aum-weekly-patches)              │
-│         Weekly window · Critical/Security/UpdateRollup · IfRequired │
-│                        │                                            │
-│         3 Maintenance Assignments (one per VM)                      │
-│                        │                                            │
-│                        ▼                                            │
-│              validate-lab.ps1 → compliance JSON report              │
-└───────────────────────────────────────────────────────────────────┘
-```
+![Azure Update Manager lab architecture: Azure Policy enrolls DC01, WS01, and WS02 for assessment, a weekly Maintenance Configuration patches them through three Maintenance Assignments, and validate-lab.ps1 exports a JSON compliance report](diagrams/aum-lab-architecture.png)
+
+Dashed arrows are assessment, solid arrows are patching. They're drawn separately because they are separate operations: a VM can report compliance data through the policy and still never be patched if its maintenance assignment is missing.
 
 ## Why Each Component Exists
 
@@ -699,6 +678,23 @@ pwsh ./scripts/validate-lab.ps1 -ResourceGroup "rg-aumlab" -SubscriptionId $subI
 - Azure Update Manager → Machines → all 3 VMs show as Assessed
 - Maintenance Configurations → aum-weekly-patches → all 3 VMs are linked
 - Policy → Assignments → periodic assessment policy shows Applied on rg-aumlab
+
+## Screenshots
+
+### `terraform apply`: 26 Resources, One Command
+![terraform apply output showing Apply complete with 26 resources added and outputs for the three VM public IPs, Key Vault name, and resource group](screenshots/01-terraform-apply-26-resources.png)
+
+All four modules deployed in a single apply: 26 resources added, 0 changed, 0 destroyed. The WS01 and WS02 `JoinDomain` extensions finish last, which shows the `depends_on` ordering held. Neither workstation tried to join `aumlab.local` until DC01's promotion had succeeded.
+
+### On-Demand Assessment Triggered on All Three VMs
+![PowerShell loop calling the assessPatches REST endpoint for DC01, WS01, and WS02](screenshots/02-on-demand-assessment-triggered.png)
+
+One loop calls the `assessPatches` endpoint for DC01, WS01, and WS02 without waiting for the policy's roughly 24-hour schedule. This is the same move an ops team makes when a critical CVE drops: get compliance data now, not at the next scan.
+
+### `validate-lab.ps1`: All Three VMs Pass, Report Exported
+![validate-lab.ps1 output showing PASS for DC01, WS01, and WS02, Overall ALL PASS, and aum-compliance-report.json exported](screenshots/03-validate-lab-all-pass-report-exported.png)
+
+The validation script confirms each VM is running with its agent active and provisioned, so all three are reachable by Update Manager. It then writes `aum-compliance-report.json`, the machine-readable artifact a SIEM, ServiceNow integration, or dashboard would consume.
 
 ## Teardown
 
